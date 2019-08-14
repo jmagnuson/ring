@@ -280,7 +280,8 @@ pub(crate) fn verify_rsa_(
     let Key { n, e, n_bits } = Key::from_modulus_and_exponent(n, e, params.min_bits, max_bits, 3)?;
 
     // The signature must be the same length as the modulus, in bytes.
-    if signature.len() != n_bits.as_usize_bytes_rounded_up() {
+    let n_bytes = n_bits.as_usize_bytes_rounded_up();
+    if signature.len() != n_bytes {
         return Err(error::Unspecified);
     }
 
@@ -297,13 +298,15 @@ pub(crate) fn verify_rsa_(
     let m = m.into_unencoded(&n);
 
     // Step 3.
+    // Round up the decoded slice length to the length of the limbs to accomodate for padding.
+    let n_bytes_limbs = (n_bytes + crate::limb::LIMB_BYTES - 1) & crate::limb::LIMB_BYTES.wrapping_neg();
     let mut decoded = [0u8; PUBLIC_KEY_PUBLIC_MODULUS_MAX_LEN];
-    let decoded = &mut decoded[..n_bits.as_usize_bytes_rounded_up()];
+    let decoded = &mut decoded[..n_bytes_limbs];
     m.fill_be_bytes(decoded);
 
     // Verify the padded message is correct.
     let m_hash = digest::digest(params.padding_alg.digest_alg(), msg.as_slice_less_safe());
-    untrusted::Input::from(decoded).read_all(error::Unspecified, |m| {
+    untrusted::Input::from(&decoded[n_bytes_limbs - n_bytes..]).read_all(error::Unspecified, |m| {
         params.padding_alg.verify(&m_hash, m, n_bits)
     })
 }
