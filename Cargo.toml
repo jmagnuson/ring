@@ -327,7 +327,7 @@ libc = { version = "0.2.48", default-features = false }
 
 # Keep this in sync with `[dependencies]` in pregenerate_asm/Cargo.toml.
 [build-dependencies]
-cc = { version = "1.0.36", default-features = false }
+cc = { git = "https://github.com/GeorgeHahn/cc-rs", branch = "better-flag-checking", rev = "e763bb23a12c953cd38c2405d4b5f86f6ab46297"}
 
 [features]
 # These features are documented in the top-level module's documentation.
